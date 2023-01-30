@@ -34,41 +34,38 @@
 
 /////////////////////////////////////////////////
 // temporary functions
-
-
 static err_t netif_output(struct netif *netif, struct pbuf *p)
 {
     LINK_STATS_INC(link.xmit);
 
-#if 0
     // lock_interrupts();
     // pbuf_copy_partial(p, mac_send_buffer, p->tot_len, 0);
     /* Start MAC transmit here */
 
-    printf("enc28j60: Sending packet of len %d\n", p->len);
-    enc28j60PacketSend(p->len, (uint8_t *)p->payload);
+    pr_log("TcpIp: Sending packet of len %d\n", p->len);
+    macphy_pkt_send((uint8_t *)p->payload, p->len);
     // pbuf_free(p);
 
     // error sending
-    if (enc28j60Read(ESTAT) & ESTAT_TXABRT)
+    if (enc28j60_read_reg(ESTAT) & ESTAT_TXABRT)
     {
         // a seven-byte transmit status vector will be
         // written to the location pointed to by ETXND + 1,
-        printf("ERR - transmit aborted\n");
+        pr_log("ERR - transmit aborted\n");
     }
 
-    if (enc28j60Read(EIR) & EIR_TXERIF)
+    if (enc28j60_read_reg(EIR) & EIR_TXERIF)
     {
-        printf("ERR - transmit interrupt flag set\n");
+        pr_log("ERR - transmit interrupt flag set\n");
     }
-#endif
 
     // unlock_interrupts();
     return ERR_OK;
 }
+
 static void netif_status_callback(struct netif *netif)
 {
-    printf("netif status changed %s\n", ip4addr_ntoa(netif_ip4_addr(netif)));
+    pr_log("netif status changed %s\n", ip4addr_ntoa(netif_ip4_addr(netif)));
 }
 
 static err_t netif_initialize(struct netif *netif)
@@ -93,11 +90,11 @@ struct netif netif;
 
 // Function: TcpIp_Init will be called by EcuM
 void TcpIp_Init(const TcpIp_ConfigType* ConfigPtr) {
-	ip_addr_t addr, mask, static_ip;
+	ip4_addr_t addr, mask, static_ip;
 
-	IP4_ADDR(&static_ip, 192, 168, 1, 111);
+	IP4_ADDR(&static_ip, 192, 168, 3, 111);
 	IP4_ADDR(&mask, 255, 255, 255, 0);
-	IP4_ADDR(&addr, 192, 168, 1, 1);
+	IP4_ADDR(&addr, 192, 168, 3, 1);
 
 	lwip_init();
 	netif_add(&netif, &static_ip, &mask, &addr, NULL, netif_initialize, netif_input);
@@ -124,14 +121,11 @@ void TcpIp_MainFunction(void) {
 	// following line is a temporary test
 	packet_len = macphy_pkt_recv((uint8_t *)eth_pkt, ETHERNET_MTU);
 	if (packet_len) {
-		printf("enc: Received packet of length = %d\n", packet_len);
+		pr_log("TcpIp: Received packet of length = %d\n", packet_len);
 		p = pbuf_alloc(PBUF_RAW, packet_len, PBUF_POOL);
 		pbuf_take(p, eth_pkt, packet_len);
 		// free(eth_pkt);
 		// eth_pkt = malloc(ETHERNET_MTU);
-	}
-	else {
-		// printf("enc: no packet received\n");
 	}
 
 	if (packet_len && p != NULL) {

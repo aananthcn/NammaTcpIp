@@ -1,5 +1,5 @@
 /*
- * Created on Fri Jan 27 2023 8:40:00 PM
+ * Created on Fri Jan 27 2023 8:43:15 PM
  *
  * The MIT License (MIT)
  * Copyright (c) 2023 Aananth C N
@@ -19,22 +19,10 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef __ARCH_SYS_ARCH_H__
-#define __ARCH_SYS_ARCH_H__
-
-#define SYS_MBOX_NULL   NULL
-#define SYS_SEM_NULL    NULL
-
-typedef void * sys_prot_t;
-typedef void * sys_thread_t;
-
-#if 0
-// these are defined under NOSYS in sys.h
-typedef void * sys_sem_t;
-typedef void * sys_mbox_t;
+#if MEM_USE_POOLS
+LWIP_MALLOC_MEMPOOL_START
+LWIP_MALLOC_MEMPOOL(20, 256)
+LWIP_MALLOC_MEMPOOL(10, 512)
+LWIP_MALLOC_MEMPOOL(5, 1512)
+LWIP_MALLOC_MEMPOOL_END
 #endif
-
-unsigned int sys_rand(void);
-
-
-#endif /* __ARCH_SYS_ARCH_H__ */

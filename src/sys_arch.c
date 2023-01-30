@@ -27,25 +27,30 @@
 
 
 sys_prot_t sys_arch_protect(void) {
-	sys_prot_t retc = 0;
+        sys_prot_t retc = 0;
 
-	// enter critical section
-	DisableAllInterrupts();
+        // enter critical section
+        DisableAllInterrupts();
 
-	return retc;
+        return retc;
 }
 
 
 void sys_arch_unprotect(sys_prot_t pval)
 {
-	// unsed arg
-	pval = pval;
+        // unsed arg
+        pval = pval;
 
-	// exit critical section
-	ResumeAllInterrupts();
+        // exit critical section
+        ResumeAllInterrupts();
 }
 
 
 u32_t sys_now(void) {
-	return _GetOsTickCnt() * (OS_TICK_DURATION_ns / 1000000);
+        return _GetOsTickCnt() * (OS_TICK_DURATION_ns / 1000000);
+}
+
+
+unsigned int sys_rand(void) {
+        return _GetOsTickCnt();
 }
