@@ -21,6 +21,7 @@
 #include <TcpIp.h>
 #include <Eth.h>
 
+#include <os_api.h> // for pr_log()
 #include <macphy.h> // revisit this
 
 #include <lwip/ip_addr.h>
@@ -109,6 +110,8 @@ void TcpIp_Init(const TcpIp_ConfigType* ConfigPtr) {
 	// eth_pkt = malloc(ETHERNET_MTU);
 
 	netif_set_link_up(&netif);
+
+	pr_log("TcpIp init complete!\n");
 }
 
 
