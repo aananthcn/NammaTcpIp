@@ -26,7 +26,7 @@ RANLIB=${COMPILER}ranlib
 OBJCOPY=${COMPILER}objcopy
 
 
-include ${ROOT_DIR}/path_defs.mk
+include ${CAR_OS_PATH}/path_defs.mk
 include ${TCPIP_PATH}/lwip_filelists.mk
 
 LWIPDIR  := ${TCPIP_PATH}/lwip/src
@@ -35,12 +35,14 @@ LWIP_DIR := ${TCPIP_PATH}/lwip
 INCDIRS  += -I ${TCPIP_PATH}/lwip/src/include \
             -I ${TCPIP_PATH}/cfg \
             -I ${TCPIP_PATH}/api \
+	    -I ${CAR_OS_INC_PATH}/autosar \
+	    -I ${CAR_OS_INC_PATH}/car_os \
+	    -I ${CAR_OS_BOARDS_PATH} \
 	    -I ${OS_PATH}/include \
 	    -I ${MCU_PATH}/src \
  	    -I ${MCU_PATH}/src/common \
 	    -I ${MCU_PATH}/src/common/src \
 	    -I ${MCU_PATH}/src/common/api \
-	    -I ${MCU_STARTUP_PATH} \
 	    -I ${OS_PATH}/include \
 	    -I ${OS_BUILDER_PATH}/src \
 	    -I ${SPI_PATH}/cfg \
@@ -48,7 +50,7 @@ INCDIRS  += -I ${TCPIP_PATH}/lwip/src/include \
 	    -I ${ETH_PATH}/src/macphy \
 	    -I ${ETH_PATH}/api
 
-# remove 👆🏻 SPI_PATH, ETH_PATH, ETH_PATH after 15-Feb-2023; these are added for testing on 28 Jan 2023
+# TODO: remove 👆🏻 SPI_PATH, ETH_PATH, ETH_PATH after 15-Feb-2023; these are added for testing on 28 Jan 2023
 
 
 $(info  )
@@ -67,7 +69,7 @@ ASFLAGS := ${INCDIRS} -g
 TARGET 	:= libTcpIp.la
 
 # include c_l_flags.mk to add more definitions specific to micro-controller
-include ${ROOT_DIR}/c_l_flags.mk
+include ${CAR_OS_PATH}/c_l_flags.mk
 
 all: $(TARGET)
 
