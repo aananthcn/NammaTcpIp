@@ -63,13 +63,18 @@ TCPIP_OBJS := \
 	${TCPIP_PATH}/src/TcpIp.o
 
 
-LDFLAGS := -g -relocatable
-CFLAGS  := -Werror ${INCDIRS} -g
-ASFLAGS := ${INCDIRS} -g
-TARGET 	:= libTcpIp.la
+# LDFLAGS := -g -relocatable
+# CFLAGS  := -Werror ${INCDIRS} -g
+# ASFLAGS := ${INCDIRS} -g
+TARGET 	:= libTcpIp.a
 
 # include c_l_flags.mk to add more definitions specific to micro-controller
 include ${CAR_OS_PATH}/c_l_flags.mk
+
+
+%.o: %.c
+	$(CC) -c ${CFLAGS} ${INCDIRS} $< -o $@
+
 
 all: $(TARGET)
 
@@ -79,7 +84,9 @@ LWIP_OBJS := ${LWIP_SRCS:.c=.o}
 LIB_OBJS := $(LWIP_OBJS) $(TCPIP_OBJS)
 
 $(TARGET): $(LIB_OBJS)
-	$(LD) ${LDFLAGS} -o $@ $^
+	$(AR) -rcs ${TARGET} ${LIB_OBJS}
+
+#	$(LD) ${LDFLAGS} -o $@ $^
 
 clean:
 	$(RM) $(LIB_OBJS) $(TARGET)
