@@ -22,7 +22,7 @@
 #include <Eth.h>
 
 #include <os_api.h> // for pr_log()
-#include <macphy.h> // revisit this
+#include <macphy.h> // TODO: revisit this
 
 #include <lwip/ip_addr.h>
 #include <lwip/netif.h>
@@ -39,14 +39,13 @@ static err_t netif_output(struct netif *netif, struct pbuf *p)
 {
     LINK_STATS_INC(link.xmit);
 
-    // lock_interrupts();
-    // pbuf_copy_partial(p, mac_send_buffer, p->tot_len, 0);
     /* Start MAC transmit here */
 
     pr_log("TcpIp: Sending packet of len %d\n", p->len);
     macphy_pkt_send((uint8_t *)p->payload, p->len);
-    // pbuf_free(p);
 
+// TODO: Remove the MAC and MACPHY specific code from here
+#if defined (MACPHY_DEVICE) && (MACPHY_DEVICE == 0xDEF)
     // error sending
     if (enc28j60_read_reg(ESTAT) & ESTAT_TXABRT)
     {
@@ -59,6 +58,7 @@ static err_t netif_output(struct netif *netif, struct pbuf *p)
     {
         pr_log("ERR - transmit interrupt flag set\n");
     }
+#endif
 
     // unlock_interrupts();
     return ERR_OK;
