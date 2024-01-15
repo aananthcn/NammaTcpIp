@@ -21,7 +21,7 @@
 #include <TcpIp.h>
 #include <Eth.h>
 
-#include <os_api.h> // for pr_log()
+#include <os_api.h> // for LOG_ERR()
 #include <macphy.h> // TODO: revisit this
 
 #include <lwip/ip_addr.h>
@@ -30,6 +30,12 @@
 #include <lwip/etharp.h>
 #include <lwip/dhcp.h>
 #include <lwip/timeouts.h>
+
+
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(TcpIp, LOG_LEVEL_DBG);
+
+
 
 #define ETHERNET_MTU 1500
 
@@ -41,7 +47,7 @@ static err_t netif_output(struct netif *netif, struct pbuf *p)
 
     /* Start MAC transmit here */
 
-    pr_log("TcpIp: Sending packet of len %d\n", p->len);
+    LOG_DBG("TcpIp: Sending packet of len %d", p->len);
     macphy_pkt_send((uint8_t *)p->payload, p->len);
 
 // TODO: Remove the MAC and MACPHY specific code from here
@@ -51,12 +57,12 @@ static err_t netif_output(struct netif *netif, struct pbuf *p)
     {
         // a seven-byte transmit status vector will be
         // written to the location pointed to by ETXND + 1,
-        pr_log("ERR - transmit aborted\n");
+        LOG_ERR("ERR - transmit aborted");
     }
 
     if (enc28j60_read_reg(EIR) & EIR_TXERIF)
     {
-        pr_log("ERR - transmit interrupt flag set\n");
+        LOG_ERR("ERR - transmit interrupt flag set");
     }
 #endif
 
@@ -66,7 +72,7 @@ static err_t netif_output(struct netif *netif, struct pbuf *p)
 
 static void netif_status_callback(struct netif *netif)
 {
-    pr_log("netif status changed %s\n", ip4addr_ntoa(netif_ip4_addr(netif)));
+    LOG_INF("netif status changed %s", ip4addr_ntoa(netif_ip4_addr(netif)));
 }
 
 static err_t netif_initialize(struct netif *netif)
@@ -111,7 +117,7 @@ void TcpIp_Init(const TcpIp_ConfigType* ConfigPtr) {
 
 	netif_set_link_up(&netif);
 
-	pr_log("TcpIp init complete!\n");
+	LOG_INF("Init complete!");
 }
 
 
@@ -124,7 +130,7 @@ void TcpIp_MainFunction(void) {
 	// following line is a temporary test
 	packet_len = macphy_pkt_recv((uint8_t *)eth_pkt, ETHERNET_MTU);
 	if (packet_len) {
-		pr_log("TcpIp: Received packet of length = %d\n", packet_len);
+		LOG_ERR("TcpIp: Received packet of length = %d", packet_len);
 		p = pbuf_alloc(PBUF_RAW, packet_len, PBUF_POOL);
 		pbuf_take(p, eth_pkt, packet_len);
 		// free(eth_pkt);
