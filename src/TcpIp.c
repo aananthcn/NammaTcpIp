@@ -89,6 +89,9 @@ static err_t netif_initialize(struct netif *netif)
 	netif->hwaddr_len = sizeof(netif->hwaddr);
 	return ERR_OK;
 }
+
+
+
 /////////////////////////////////////////////////
 
 

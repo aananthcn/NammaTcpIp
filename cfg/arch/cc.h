@@ -29,12 +29,16 @@
 
 #include <os_api.h>
 
+
 // Includes definition of mch_printf macro to do printf
 // #include "mch.h"
 
 // compiler toolchain selected will define this.
+// NammaAUTOSAR configured the Rpi Pico as Big Endian, but Zephyr configures as LITTLE ENDIAN!!
+// TODO: This file (cc.h) in TcpIp must be deleted but the file and its contents must be derived from Zephyr
 #ifndef BYTE_ORDER
-#define BYTE_ORDER  BIG_ENDIAN
+//#define BYTE_ORDER  BIG_ENDIAN // TODO: commented by Aananth while porting to Zephyr (21 Jan 2024)
+#define BYTE_ORDER  LITTLE_ENDIAN
 #endif
 
 typedef uint8_t     u8_t;
@@ -63,18 +67,26 @@ typedef uintptr_t   mem_ptr_t;
 #define PACK_STRUCT_BEGIN
 #define PACK_STRUCT_END
 
+
+
+
 /* Plaform specific diagnostic output */
-#define LWIP_PLATFORM_DIAG(x)   do {                \
-        /*mch_printf x;*/                   \
+#define LWIP_PLATFORM_DIAG(x)   do {                                    \
+        /*mch_printf x;*/                                               \
+        pr_log("TcpIp diag msg: \"%s\"\n", x);                          \
     } while (0)
 
-#define LWIP_PLATFORM_ASSERT(x) do {                \
-        pr_log("Assert \"%s\" failed at line %d in %s\n",   \
-                x, __LINE__, __FILE__);             \
+#define LWIP_PLATFORM_ASSERT(x) do {                                    \
+        pr_log("Assert \"%s\" failed at line %d in %s\n",               \
+                x, __LINE__, __FILE__);                                 \
+        pr_log("ERROR: program must be aborted!!\n");                   \
     } while (0)
 
-        // mch_printf("Assert \"%s\" failed at line %d in %s\n",   \
-        //         x, __LINE__, __FILE__);             \
-        // mch_abort();                        \
+/*
+        // mch_printf("Assert \"%s\" failed at line %d in %s\n",        \
+        //         x, __LINE__, __FILE__);                              \
+        // mch_abort();                                                 \
+
+*/
 
 #endif /* __ARCH_CC_H__ */
