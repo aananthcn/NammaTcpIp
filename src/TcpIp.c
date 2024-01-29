@@ -133,7 +133,7 @@ void TcpIp_MainFunction(void) {
 	// following line is a temporary test
 	packet_len = macphy_pkt_recv((uint8_t *)eth_pkt, ETHERNET_MTU);
 	if (packet_len) {
-		LOG_ERR("TcpIp: Received packet of length = %d", packet_len);
+		LOG_DBG("TcpIp: Received packet of length = %d", packet_len);
 		p = pbuf_alloc(PBUF_RAW, packet_len, PBUF_POOL);
 		pbuf_take(p, eth_pkt, packet_len);
 		// free(eth_pkt);
