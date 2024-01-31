@@ -45,28 +45,10 @@ static err_t netif_output(struct netif *netif, struct pbuf *p)
 {
     LINK_STATS_INC(link.xmit);
 
-    /* Start MAC transmit here */
-
+    /* Start MAC transmit */
     LOG_DBG("TcpIp: Sending packet of len %d", p->len);
     macphy_pkt_send((uint8_t *)p->payload, p->len);
 
-// TODO: Remove the MAC and MACPHY specific code from here
-#if defined (MACPHY_DEVICE) && (MACPHY_DEVICE == 0xDEF)
-    // error sending
-    if (enc28j60_read_reg(ESTAT) & ESTAT_TXABRT)
-    {
-        // a seven-byte transmit status vector will be
-        // written to the location pointed to by ETXND + 1,
-        LOG_ERR("ERR - transmit aborted");
-    }
-
-    if (enc28j60_read_reg(EIR) & EIR_TXERIF)
-    {
-        LOG_ERR("ERR - transmit interrupt flag set");
-    }
-#endif
-
-    // unlock_interrupts();
     return ERR_OK;
 }
 
