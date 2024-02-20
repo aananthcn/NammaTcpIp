@@ -40,11 +40,8 @@ typedef enum {
 } TcpIp_ProtocolType;
 
 
-typedef struct {
-	TcpIp_DomainType domain;
-} TcpIp_SockAddrType;
-
-
+#define IPv4_2_U32(a,b,c,d) (((u32_t)((a) & 0xff) << 24) | ((u32_t)((b) & 0xff) << 16) | \
+                             ((u32_t)((c) & 0xff) << 8)  |  (u32_t)((d) & 0xff))
 typedef struct {
 	TcpIp_DomainType domain;
 	uint16 port;
@@ -57,6 +54,13 @@ typedef struct {
 	uint16 port;
 	uint32 addr[4];
 } TcpIp_SockAddrInet6Type;
+
+
+union TcpIp_SockAddrUnion {
+	TcpIp_SockAddrInetType inet4;
+	TcpIp_SockAddrInet6Type inet6;
+};
+typedef union TcpIp_SockAddrUnion TcpIp_SockAddrType;
 
 
 typedef uint8 TcpIp_LocalAddrIdType;

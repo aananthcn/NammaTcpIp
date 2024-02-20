@@ -289,6 +289,17 @@ static err_t tcpecho_raw_accept(void *arg, struct tcp_pcb *newpcb, err_t err) {
 
 
 
+static err_t tcpecho_raw_connected(void *arg, struct tcp_pcb *tpcb, err_t err)
+{
+        LWIP_UNUSED_ARG(arg);
+        LWIP_UNUSED_ARG(tpcb);
+
+        LOG_DBG("TcpIp connect status: %d", err);
+
+        return ERR_OK;
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////
 // Core Communication Control APIs
 
@@ -303,7 +314,7 @@ Std_ReturnType TcpIp_Close(TcpIp_SocketIdType SocketId, boolean Abort) {
 
 
 // By this API service the TCP/IP stack is requested to bind a UDP or TCP socket
-// to a local resource.
+// to a local resource. The Server API.
 Std_ReturnType TcpIp_Bind(TcpIp_SocketIdType SocketId, TcpIp_LocalAddrIdType LocalAddrId, uint16* PortPtr) {
         Std_ReturnType retval = E_OK;
         err_t err;
@@ -327,7 +338,7 @@ Std_ReturnType TcpIp_Bind(TcpIp_SocketIdType SocketId, TcpIp_LocalAddrIdType Loc
 
 
 // By this API service the TCP/IP stack is requested to listen on the TCP socket
-// specified by the socket identifier.
+// specified by the socket identifier. The Server API.
 Std_ReturnType TcpIp_TcpListen(TcpIp_SocketIdType SocketId, uint16 MaxChannels) {
         Std_ReturnType retval = E_OK;
 
@@ -345,9 +356,46 @@ Std_ReturnType TcpIp_TcpListen(TcpIp_SocketIdType SocketId, uint16 MaxChannels) 
 
 
 // By this API service the TCP/IP stack is requested to establish a TCP connection
-// to the configured peer.
+// to the configured peer. The client API.
 Std_ReturnType TcpIp_TcpConnect(TcpIp_SocketIdType SocketId, const TcpIp_SockAddrType* RemoteAddrPtr) {
         Std_ReturnType retval = E_OK;
+        struct tcpecho_raw_state *es;
+        ip_addr_t ipv4;
+        err_t err;
+        u16_t port;
+
+        struct tcp_pcb *newpcb = tcp_new();
+        if (newpcb == NULL) {
+                LOG_DBG("tcp_pcp allocation failure!");
+                return E_NOT_OK;
+        }
+
+        es = (struct tcpecho_raw_state *) mem_malloc(sizeof(struct tcpecho_raw_state));
+        if (es != NULL) {
+                es->state = ES_ACCEPTED;
+                es->pcb = newpcb;
+                es->retries = 0;
+                es->p = NULL;
+                /* pass newly allocated es to our callbacks */
+                tcp_arg(newpcb, es);
+                tcp_recv(newpcb, tcpecho_raw_recv);
+                tcp_err(newpcb, tcpecho_raw_error);
+                tcp_poll(newpcb, tcpecho_raw_poll, 0);
+                tcp_sent(newpcb, tcpecho_raw_sent);
+        }
+        else {
+                LOG_DBG("Memory allocation failure!");
+                // tcp_free(newpcb);
+                memp_free(MEMP_TCP_PCB, newpcb);
+                return E_NOT_OK;
+        }
+
+        ipv4.addr = RemoteAddrPtr->inet4.addr[0];
+        port = RemoteAddrPtr->inet4.port;
+        err = tcp_connect(newpcb, &ipv4, port, tcpecho_raw_connected);
+        if (err != ERR_OK) {
+                retval = E_NOT_OK;
+        }
 
         return retval;
 }
@@ -358,6 +406,8 @@ Std_ReturnType TcpIp_TcpConnect(TcpIp_SocketIdType SocketId, const TcpIp_SockAdd
 Std_ReturnType TcpIp_TcpReceived(TcpIp_SocketIdType SocketId, uint32 Length) {
         Std_ReturnType retval = E_OK;
 
+        // Increase receive window
+
         return retval;
 }
 
@@ -367,6 +417,8 @@ Std_ReturnType TcpIp_TcpReceived(TcpIp_SocketIdType SocketId, uint32 Length) {
 // of the communication network identified by EthIf controller index.
 Std_ReturnType TcpIp_RequestComMode(uint8 CtrlIdx, TcpIp_StateType State) {
         Std_ReturnType retval = E_OK;
+
+        // Call EthIf to change the state of controller
 
         return retval;
 }
