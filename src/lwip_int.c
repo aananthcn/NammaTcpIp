@@ -22,6 +22,7 @@
 // This file contains code that is required to integrate LWIP to Car-OS
 
 #include <Eth.h>
+#include <TcpIp_cfg.h>
 
 #include <lwip/ip_addr.h>
 #include <lwip/netif.h>
@@ -36,7 +37,7 @@
 #define ETHERNET_MTU 1500
 
 uint8_t Lwip_EthPkt[ETHERNET_MTU];
-struct netif Lwip_NetIf;
+struct netif Lwip_NetIf[MAX_TCPIP_LOCAL_ADDRESS];
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(lwip_int, LOG_LEVEL_DBG);
@@ -57,7 +58,8 @@ static err_t netif_output(struct netif *netif, struct pbuf *p) {
 
 
 static void netif_status_callback(struct netif *netif) {
-        LOG_INF("netif status changed %s", ip4addr_ntoa(netif_ip4_addr(netif)));
+        LOG_INF("netif[%c%c] status changed %s", netif->name[0], netif->name[1],
+                ip4addr_ntoa(netif_ip4_addr(netif)));
 }
 
 
@@ -88,6 +90,7 @@ static err_t netif_initialize(struct netif *netif) {
 void lwip_int_main(void) {
         struct pbuf *p = NULL;
         uint16_t packet_len;
+        uint16_t i;
 
         // following line is a temporary test, this should be replaced by EthIf APIs
         packet_len = macphy_pkt_recv((uint8_t *)Lwip_EthPkt, ETHERNET_MTU);
@@ -102,8 +105,10 @@ void lwip_int_main(void) {
         if (packet_len && p != NULL) {
                 LINK_STATS_INC(link.recv);
 
-                if (Lwip_NetIf.input(p, &Lwip_NetIf) != ERR_OK) {
-                        pbuf_free(p);
+                for (i = 0; i < MAX_TCPIP_LOCAL_ADDRESS; i++) {
+                        if (Lwip_NetIf[i].input(p, &Lwip_NetIf[i]) != ERR_OK) {
+                                pbuf_free(p);
+                        }
                 }
         }
 
@@ -115,22 +120,37 @@ void lwip_int_main(void) {
 
 void lwip_int_init(void) {
         ip4_addr_t addr, mask, static_ip;
+        u16 i;
 
-        IP4_ADDR(&static_ip, 192, 168, 3, 111);
-        IP4_ADDR(&mask, 255, 255, 255, 0);
-        IP4_ADDR(&addr, 192, 168, 3, 1);
+        // TODO: refactor this code by adding a for loop to initialize all EthIf
+        if (MAX_TCPIP_LOCAL_ADDRESS < 1) {
+                LOG_ERR("Ethernet local address not configured!");
+                return;
+        }
 
-        lwip_init();
-        netif_add(&Lwip_NetIf, &static_ip, &mask, &addr, NULL, netif_initialize, netif_input);
-        Lwip_NetIf.name[0] = 'e';
-        Lwip_NetIf.name[1] = '0';
+        for (i = 0; i < MAX_TCPIP_LOCAL_ADDRESS; i++) {
+                // IP Address
+                IP4_ADDR(&static_ip, TcpIpLocalAddrConfigs[i].ip_addr[0], TcpIpLocalAddrConfigs[i].ip_addr[1],
+                        TcpIpLocalAddrConfigs[i].ip_addr[2], TcpIpLocalAddrConfigs[i].ip_addr[3]);
+                // IP Netmask
+                IP4_ADDR(&mask, TcpIpLocalAddrConfigs[i].ip_netmask[0], TcpIpLocalAddrConfigs[i].ip_netmask[1],
+                        TcpIpLocalAddrConfigs[i].ip_netmask[2], TcpIpLocalAddrConfigs[i].ip_netmask[3]);
+                // Default Router IP
+                IP4_ADDR(&addr, TcpIpLocalAddrConfigs[i].ip_dfroutr[0], TcpIpLocalAddrConfigs[i].ip_dfroutr[1],
+                        TcpIpLocalAddrConfigs[i].ip_dfroutr[2], TcpIpLocalAddrConfigs[i].ip_dfroutr[3]);
 
-        netif_set_status_callback(&Lwip_NetIf, netif_status_callback);
-        netif_set_default(&Lwip_NetIf);
-        netif_set_up(&Lwip_NetIf);
+                lwip_init();
+                netif_add(&Lwip_NetIf[i], &static_ip, &mask, &addr, NULL, netif_initialize, netif_input);
+                Lwip_NetIf[i].name[0] = 'e';
+                Lwip_NetIf[i].name[1] = '0' + TcpIpLocalAddrConfigs[i].addr_id;
 
-        dhcp_inform(&Lwip_NetIf);
-        // Lwip_EthPkt = malloc(ETHERNET_MTU);
+                netif_set_status_callback(&Lwip_NetIf[i], netif_status_callback);
+                netif_set_default(&Lwip_NetIf[i]);
+                netif_set_up(&Lwip_NetIf[i]);
 
-        netif_set_link_up(&Lwip_NetIf);
+                dhcp_inform(&Lwip_NetIf[i]);
+                // Lwip_EthPkt = malloc(ETHERNET_MTU);
+
+                netif_set_link_up(&Lwip_NetIf[i]);
+        }
 }

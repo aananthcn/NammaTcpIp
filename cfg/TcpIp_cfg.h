@@ -62,12 +62,14 @@ typedef struct {
     TcpIpAssignmentTrigger    addr_assn_trig;
     uint16                    ip_addr[16]; /* supports both ipv6 and ipv4 */
     uint16                    ip_netmask[16]; /* supports both ipv6 and ipv4 */
-    uint16                    ip_default_router[16]; /* supports both ipv6 and ipv4 */
+    uint16                    ip_dfroutr[16]; /* supports both ipv6 and ipv4 */
 } TcpIpLocalAddr;
 
 
-
 #define MAX_TCPIP_LOCAL_ADDRESS     (1)
+
+extern const TcpIpLocalAddr TcpIpLocalAddrConfigs[MAX_TCPIP_LOCAL_ADDRESS];
+
 
 
 typedef struct {
