@@ -356,7 +356,7 @@ Std_ReturnType TcpIp_TcpListen(TcpIp_SocketIdType SocketId, uint16 MaxChannels) 
 
 
 // By this API service the TCP/IP stack is requested to establish a TCP connection
-// to the configured peer. The client API.
+// to the configured peer. The client API. Reference: test_tcp.c of lwip project.
 Std_ReturnType TcpIp_TcpConnect(TcpIp_SocketIdType SocketId, const TcpIp_SockAddrType* RemoteAddrPtr) {
         Std_ReturnType retval = E_OK;
         struct tcpecho_raw_state *es;
