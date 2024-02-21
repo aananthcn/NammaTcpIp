@@ -25,6 +25,7 @@
 
 #include <Platform_Types.h>
 #include <Std_Types.h>
+#include <Eth_GeneralTypes.h>
 
 #include <TcpIp_cfg.h>
 
@@ -154,9 +155,9 @@ typedef struct {
 #define	TCPIP_MEAS_DROP_UDP 	0x02 
 #define	TCPIP_MEAS_DROP_IPV4 	0x03 
 #define	TCPIP_MEAS_DROP_IPV6 	0x04 
-#define	TCPIP_MEAS_RESERVED_1	0x05- 0x7F 
-#define	TCPIP_MEAS_RESERVED_2	0x80-0x EF 
-#define	TCPIP_MEAS_RESERVED_3	0xF0-0x FE 
+#define	TCPIP_MEAS_RESERVED_1	0x05/*-0x7F*/
+#define	TCPIP_MEAS_RESERVED_2	0x80/*-0xEF*/
+#define	TCPIP_MEAS_RESERVED_3	0xF0/*-0xFE*/
 #define	TCPIP_MEAS_ALL 		0xFF 
 typedef uint8 TcpIp_MeasurementIdxType;
 
@@ -169,6 +170,20 @@ typedef uint16 TcpIp_TlsConnectionIdType;
 // Functions
 
 void TcpIp_Init(const TcpIp_ConfigType* ConfigPtr);
+
+Std_ReturnType TcpIp_Close(TcpIp_SocketIdType SocketId, boolean Abort);
+Std_ReturnType TcpIp_Bind(TcpIp_SocketIdType SocketId, TcpIp_LocalAddrIdType LocalAddrId, uint16* PortPtr);
+Std_ReturnType TcpIp_TcpListen(TcpIp_SocketIdType SocketId, uint16 MaxChannels);
+Std_ReturnType TcpIp_TcpConnect(TcpIp_SocketIdType SocketId, const TcpIp_SockAddrType* RemoteAddrPtr);
+Std_ReturnType TcpIp_TcpReceived(TcpIp_SocketIdType SocketId, uint32 Length);
+Std_ReturnType TcpIp_RequestComMode(uint8 CtrlIdx, TcpIp_StateType State);
+
+Std_ReturnType TcpIp_TcpTransmit(TcpIp_SocketIdType SocketId, const uint8* DataPtr,
+                      uint32 AvailableLength, boolean ForceRetrieve);
+Std_ReturnType TcpIp_UdpTransmit(TcpIp_SocketIdType SocketId, const uint8* DataPtr,
+                const TcpIp_SockAddrType* RemoteAddrPtr, uint16 TotalLength);
+void TcpIp_RxIndication(uint8 CtrlIdx, Eth_FrameType FrameType, boolean IsBroadcast,
+                        const uint8* PhysAddrPtr, const uint8* DataPtr, uint16 LenByte);
 
 void TcpIp_MainFunction(void);
 

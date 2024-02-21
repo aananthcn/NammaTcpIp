@@ -32,9 +32,7 @@ LOG_MODULE_REGISTER(TcpIp, LOG_LEVEL_DBG);
 
 ///////////////////////////////////////////////////////////////////////////////
 // local static datastructures, imported from tcpecho_raw.c of lwip
-static struct tcp_pcb *tcpecho_raw_pcb = NULL;
-
-enum tcpecho_raw_states
+enum tcpip_raw_states
 {
         ES_NONE = 0,
         ES_ACCEPTED,
@@ -42,7 +40,7 @@ enum tcpecho_raw_states
         ES_CLOSING
 };
 
-struct tcpecho_raw_state
+struct tcpip_raw_state
 {
         u8_t state;
         u8_t retries;
@@ -51,10 +49,15 @@ struct tcpecho_raw_state
 };
 
 
+static struct tcp_pcb *tcpip_raw_pcb = NULL;
+static struct tcpip_raw_state *client_es;
+static struct tcpip_raw_state *server_es;
+
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // local static functions, imported from tcpecho_raw.c of lwip
-static void tcpecho_raw_free(struct tcpecho_raw_state *es)
+static void tcpip_raw_free(struct tcpip_raw_state *es)
 {
         if (es != NULL) {
                 if (es->p) {
@@ -68,18 +71,18 @@ static void tcpecho_raw_free(struct tcpecho_raw_state *es)
 
 
 
-static void tcpecho_raw_error(void *arg, err_t err) {
-        struct tcpecho_raw_state *es;
+static void tcpip_raw_error(void *arg, err_t err) {
+        struct tcpip_raw_state *es;
 
         LWIP_UNUSED_ARG(err);
-        es = (struct tcpecho_raw_state *)arg;
-        tcpecho_raw_free(es);
+        es = (struct tcpip_raw_state *)arg;
+        tcpip_raw_free(es);
         LOG_DBG("tcp raw error");
 }
 
 
 
-static void tcpecho_raw_send(struct tcp_pcb *tpcb, struct tcpecho_raw_state *es)
+static void tcpip_raw_send(struct tcp_pcb *tpcb, struct tcpip_raw_state *es)
 {
         struct pbuf *ptr;
         err_t wr_err = ERR_OK;
@@ -118,7 +121,7 @@ static void tcpecho_raw_send(struct tcp_pcb *tpcb, struct tcpecho_raw_state *es)
 
 
 
-static void tcpecho_raw_close(struct tcp_pcb *tpcb, struct tcpecho_raw_state *es)
+static void tcpip_raw_close(struct tcp_pcb *tpcb, struct tcpip_raw_state *es)
 {
         tcp_arg(tpcb, NULL);
         tcp_sent(tpcb, NULL);
@@ -126,27 +129,27 @@ static void tcpecho_raw_close(struct tcp_pcb *tpcb, struct tcpecho_raw_state *es
         tcp_err(tpcb, NULL);
         tcp_poll(tpcb, NULL, 0);
 
-        tcpecho_raw_free(es);
+        tcpip_raw_free(es);
 
         tcp_close(tpcb);
 }
 
 
 
-static err_t tcpecho_raw_poll(void *arg, struct tcp_pcb *tpcb) {
+static err_t tcpip_raw_poll(void *arg, struct tcp_pcb *tpcb) {
         err_t ret_err;
-        struct tcpecho_raw_state *es;
+        struct tcpip_raw_state *es;
 
-        es = (struct tcpecho_raw_state *) arg;
+        es = (struct tcpip_raw_state *) arg;
         if (es != NULL) {
                 if (es->p != NULL) {
                         /* there is a remaining pbuf (chain) */
-                        tcpecho_raw_send(tpcb, es);
+                        tcpip_raw_send(tpcb, es);
                 }
                 else {
                         /* no remaining pbuf (chain)  */
                         if (es->state == ES_CLOSING) {
-                                tcpecho_raw_close(tpcb, es);
+                                tcpip_raw_close(tpcb, es);
                         }
                 }
                 ret_err = ERR_OK;
@@ -162,25 +165,25 @@ static err_t tcpecho_raw_poll(void *arg, struct tcp_pcb *tpcb) {
 
 
 
-static err_t tcpecho_raw_sent(void *arg, struct tcp_pcb *tpcb, u16_t len)
+static err_t tcpip_raw_sent(void *arg, struct tcp_pcb *tpcb, u16_t len)
 {
-        struct tcpecho_raw_state *es;
+        struct tcpip_raw_state *es;
 
         LWIP_UNUSED_ARG(len);
 
-        es = (struct tcpecho_raw_state *)arg;
+        es = (struct tcpip_raw_state *)arg;
         es->retries = 0;
 
         if (es->p != NULL) {
                 /* still got pbufs to send */
-                tcp_sent(tpcb, tcpecho_raw_sent);
-                tcpecho_raw_send(tpcb, es);
+                tcp_sent(tpcb, tcpip_raw_sent);
+                tcpip_raw_send(tpcb, es);
         }
         else {
                 /* no more pbufs to send */
                 if (es->state == ES_CLOSING) {
                         LOG_DBG("tcp socket close!");
-                        tcpecho_raw_close(tpcb, es);
+                        tcpip_raw_close(tpcb, es);
                 }
         }
 
@@ -189,22 +192,22 @@ static err_t tcpecho_raw_sent(void *arg, struct tcp_pcb *tpcb, u16_t len)
 
 
 
-static err_t tcpecho_raw_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err) {
-        struct tcpecho_raw_state *es;
+static err_t tcpip_raw_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err) {
+        struct tcpip_raw_state *es;
         err_t ret_err;
 
         LWIP_ASSERT("arg != NULL", arg != NULL);
-        es = (struct tcpecho_raw_state *) arg;
+        es = (struct tcpip_raw_state *) arg;
         if (p == NULL) {
                 /* remote host closed connection */
                 es->state = ES_CLOSING;
                 if (es->p == NULL) {
                         /* we're done sending, close it */
-                        tcpecho_raw_close(tpcb, es);
+                        tcpip_raw_close(tpcb, es);
                 }
                 else {
                         /* we're not done yet */
-                        tcpecho_raw_send(tpcb, es);
+                        tcpip_raw_send(tpcb, es);
                 }
                 ret_err = ERR_OK;
         }
@@ -219,14 +222,14 @@ static err_t tcpecho_raw_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, e
                 es->state = ES_RECEIVED;
                 /* store reference to incoming pbuf (chain) */
                 es->p = p;
-                tcpecho_raw_send(tpcb, es);
+                tcpip_raw_send(tpcb, es);
                 ret_err = ERR_OK;
         }
         else if (es->state == ES_RECEIVED) {
                 /* read some more data */
                 if (es->p == NULL) {
                         es->p = p;
-                        tcpecho_raw_send(tpcb, es);
+                        tcpip_raw_send(tpcb, es);
                 }
                 else
                 {
@@ -250,9 +253,8 @@ static err_t tcpecho_raw_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, e
 
 
 
-static err_t tcpecho_raw_accept(void *arg, struct tcp_pcb *newpcb, err_t err) {
+static err_t tcpip_raw_accept(void *arg, struct tcp_pcb *newpcb, err_t err) {
         err_t ret_err;
-        struct tcpecho_raw_state *es;
 
         LWIP_UNUSED_ARG(arg);
         if ((err != ERR_OK) || (newpcb == NULL)) {
@@ -265,18 +267,18 @@ static err_t tcpecho_raw_accept(void *arg, struct tcp_pcb *newpcb, err_t err) {
            new pcbs of higher priority. */
         tcp_setprio(newpcb, TCP_PRIO_MIN);
 
-        es = (struct tcpecho_raw_state *) mem_malloc(sizeof(struct tcpecho_raw_state));
-        if (es != NULL) {
-                es->state = ES_ACCEPTED;
-                es->pcb = newpcb;
-                es->retries = 0;
-                es->p = NULL;
+        server_es = (struct tcpip_raw_state *) mem_malloc(sizeof(struct tcpip_raw_state));
+        if (server_es != NULL) {
+                server_es->state = ES_ACCEPTED;
+                server_es->pcb = newpcb;
+                server_es->retries = 0;
+                server_es->p = NULL;
                 /* pass newly allocated es to our callbacks */
-                tcp_arg(newpcb, es);
-                tcp_recv(newpcb, tcpecho_raw_recv);
-                tcp_err(newpcb, tcpecho_raw_error);
-                tcp_poll(newpcb, tcpecho_raw_poll, 0);
-                tcp_sent(newpcb, tcpecho_raw_sent);
+                tcp_arg(newpcb, server_es);
+                tcp_recv(newpcb, tcpip_raw_recv);
+                tcp_err(newpcb, tcpip_raw_error);
+                tcp_poll(newpcb, tcpip_raw_poll, 0);
+                tcp_sent(newpcb, tcpip_raw_sent);
                 ret_err = ERR_OK;
         }
         else {
@@ -289,7 +291,7 @@ static err_t tcpecho_raw_accept(void *arg, struct tcp_pcb *newpcb, err_t err) {
 
 
 
-static err_t tcpecho_raw_connected(void *arg, struct tcp_pcb *tpcb, err_t err)
+static err_t tcpip_raw_connected(void *arg, struct tcp_pcb *tpcb, err_t err)
 {
         LWIP_UNUSED_ARG(arg);
         LWIP_UNUSED_ARG(tpcb);
@@ -308,6 +310,13 @@ static err_t tcpecho_raw_connected(void *arg, struct tcp_pcb *tpcb, err_t err)
 Std_ReturnType TcpIp_Close(TcpIp_SocketIdType SocketId, boolean Abort) {
         Std_ReturnType retval = E_OK;
 
+        if (tcpip_raw_pcb == NULL) {
+                retval = E_NOT_OK;
+        }
+        else {
+                tcpip_raw_close(tcpip_raw_pcb, server_es); // TODO: implement TcpIp close for client socket later
+        }
+
         return retval;
 }
 
@@ -319,14 +328,14 @@ Std_ReturnType TcpIp_Bind(TcpIp_SocketIdType SocketId, TcpIp_LocalAddrIdType Loc
         Std_ReturnType retval = E_OK;
         err_t err;
 
-        if (PortPtr == NULL && tcpecho_raw_pcb != NULL) {
+        if (PortPtr == NULL && tcpip_raw_pcb != NULL) {
                 LOG_DBG("Argument validation failure!");
                 return E_NOT_OK;
         }
 
-        tcpecho_raw_pcb = tcp_new_ip_type(IPADDR_TYPE_ANY);
-        if (tcpecho_raw_pcb != NULL) {
-                err = tcp_bind(tcpecho_raw_pcb, IP_ANY_TYPE, *PortPtr);
+        tcpip_raw_pcb = tcp_new_ip_type(IPADDR_TYPE_ANY);
+        if (tcpip_raw_pcb != NULL) {
+                err = tcp_bind(tcpip_raw_pcb, IP_ANY_TYPE, *PortPtr);
                 if (err != ERR_OK) {
                         retval = E_NOT_OK;
                 }
@@ -337,18 +346,30 @@ Std_ReturnType TcpIp_Bind(TcpIp_SocketIdType SocketId, TcpIp_LocalAddrIdType Loc
 
 
 
+#define TCP_LISTEN_STATE        1
 // By this API service the TCP/IP stack is requested to listen on the TCP socket
 // specified by the socket identifier. The Server API.
 Std_ReturnType TcpIp_TcpListen(TcpIp_SocketIdType SocketId, uint16 MaxChannels) {
         Std_ReturnType retval = E_OK;
 
-        if (tcpecho_raw_pcb == NULL) {
+        if (tcpip_raw_pcb == NULL) {
                 LOG_DBG("Argument validation failure!");
                 return E_NOT_OK; // TcpIp_Bind is not called!!
         }
 
-        tcpecho_raw_pcb = tcp_listen(tcpecho_raw_pcb);
-        tcp_accept(tcpecho_raw_pcb, tcpecho_raw_accept);
+
+        if (tcpip_raw_pcb->state < TCP_LISTEN_STATE) {
+                tcpip_raw_pcb = tcp_listen(tcpip_raw_pcb);
+                tcp_accept(tcpip_raw_pcb, tcpip_raw_accept);
+        }
+
+        // check if accept call back is received by TcpIp module
+        if (server_es == NULL) {
+                retval = E_NOT_OK;
+        }
+        else if ((server_es->state == ES_NONE) || (server_es->state == ES_CLOSING)) {
+                retval = E_NOT_OK;
+        }
 
         return retval;
 }
@@ -359,7 +380,6 @@ Std_ReturnType TcpIp_TcpListen(TcpIp_SocketIdType SocketId, uint16 MaxChannels) 
 // to the configured peer. The client API. Reference: test_tcp.c of lwip project.
 Std_ReturnType TcpIp_TcpConnect(TcpIp_SocketIdType SocketId, const TcpIp_SockAddrType* RemoteAddrPtr) {
         Std_ReturnType retval = E_OK;
-        struct tcpecho_raw_state *es;
         ip_addr_t ipv4;
         err_t err;
         u16_t port;
@@ -370,18 +390,18 @@ Std_ReturnType TcpIp_TcpConnect(TcpIp_SocketIdType SocketId, const TcpIp_SockAdd
                 return E_NOT_OK;
         }
 
-        es = (struct tcpecho_raw_state *) mem_malloc(sizeof(struct tcpecho_raw_state));
-        if (es != NULL) {
-                es->state = ES_ACCEPTED;
-                es->pcb = newpcb;
-                es->retries = 0;
-                es->p = NULL;
+        client_es = (struct tcpip_raw_state *) mem_malloc(sizeof(struct tcpip_raw_state));
+        if (client_es != NULL) {
+                client_es->state = ES_ACCEPTED;
+                client_es->pcb = newpcb;
+                client_es->retries = 0;
+                client_es->p = NULL;
                 /* pass newly allocated es to our callbacks */
-                tcp_arg(newpcb, es);
-                tcp_recv(newpcb, tcpecho_raw_recv);
-                tcp_err(newpcb, tcpecho_raw_error);
-                tcp_poll(newpcb, tcpecho_raw_poll, 0);
-                tcp_sent(newpcb, tcpecho_raw_sent);
+                tcp_arg(newpcb, client_es);
+                tcp_recv(newpcb, tcpip_raw_recv);
+                tcp_err(newpcb, tcpip_raw_error);
+                tcp_poll(newpcb, tcpip_raw_poll, 0);
+                tcp_sent(newpcb, tcpip_raw_sent);
         }
         else {
                 LOG_DBG("Memory allocation failure!");
@@ -392,7 +412,7 @@ Std_ReturnType TcpIp_TcpConnect(TcpIp_SocketIdType SocketId, const TcpIp_SockAdd
 
         ipv4.addr = RemoteAddrPtr->inet4.addr[0];
         port = RemoteAddrPtr->inet4.port;
-        err = tcp_connect(newpcb, &ipv4, port, tcpecho_raw_connected);
+        err = tcp_connect(newpcb, &ipv4, port, tcpip_raw_connected);
         if (err != ERR_OK) {
                 retval = E_NOT_OK;
         }
@@ -406,7 +426,10 @@ Std_ReturnType TcpIp_TcpConnect(TcpIp_SocketIdType SocketId, const TcpIp_SockAdd
 Std_ReturnType TcpIp_TcpReceived(TcpIp_SocketIdType SocketId, uint32 Length) {
         Std_ReturnType retval = E_OK;
 
-        // Increase receive window
+        // Increase receive window -- The receive window represents the number of bytes
+        // that are available in the receive buffer. If the receive buffer is full, the
+        // receiving system advertises a receive window size of zero, and the sending
+        // system must wait to send more data.
 
         return retval;
 }
@@ -423,6 +446,43 @@ Std_ReturnType TcpIp_RequestComMode(uint8 CtrlIdx, TcpIp_StateType State) {
         return retval;
 }
 
+
+///////////////////////////////////////////////////////////////////////////////
+// Transmission functions
+
+// This service requests transmission of data via TCP to a remote node. The 
+// transmission of the data is decoupled.
+// Note: The TCP segment(s) are sent dependent on runtime factors (e.g. receive
+// window) and configuration parameter (e.g. Nagle algorithm) .
+Std_ReturnType TcpIp_TcpTransmit(TcpIp_SocketIdType SocketId, const uint8* DataPtr,
+                      uint32 AvailableLength, boolean ForceRetrieve) {
+        Std_ReturnType retval = E_OK;
+
+
+        return retval;
+}
+
+
+
+// This service transmits data via UDP to a remote node. The transmission of the data
+// is immediately performed with this function call by forwarding it to EthIf.
+Std_ReturnType TcpIp_UdpTransmit(TcpIp_SocketIdType SocketId, const uint8* DataPtr,
+                const TcpIp_SockAddrType* RemoteAddrPtr, uint16 TotalLength) {
+        Std_ReturnType retval = E_OK;
+
+
+        return retval;
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Reception Function
+// By this API service the TCP/IP stack gets an indication and the data of a received frame.
+void TcpIp_RxIndication(uint8 CtrlIdx, Eth_FrameType FrameType, boolean IsBroadcast, 
+                        const uint8* PhysAddrPtr, const uint8* DataPtr, uint16 LenByte) {
+
+}
 
 
 ///////////////////////////////////////////////////////////////////////////////
