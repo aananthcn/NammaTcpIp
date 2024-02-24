@@ -60,6 +60,7 @@ $(info compiling TcpIp source files)
 TCPIP_OBJS := \
 	${TCPIP_PATH}/src/sys_arch.o \
 	${TCPIP_PATH}/src/lwip_int.o \
+	${TCPIP_PATH}/src/tcpip_mpool.o \
 	${TCPIP_PATH}/cfg/TcpIp_cfg.o \
 	${TCPIP_PATH}/src/TcpIp.o
 
