@@ -34,37 +34,31 @@ LOG_MODULE_REGISTER(TcpIp, LOG_LEVEL_DBG);
 
 ///////////////////////////////////////////////////////////////////////////////
 // local static datastructures, imported from tcpecho_raw.c of lwip
-enum tcpip_raw_states
-{
-        ES_NONE = 0,
-        ES_ACCEPTED,
-        ES_RECEIVED,
-        ES_CLOSING
-};
+// enum tcpip_raw_states
+// {
+//         ES_NONE = 0,
+//         ES_ACCEPTED,
+//         ES_RECEIVED,
+//         ES_CLOSING
+// };
 
-struct tcpip_raw_state
-{
-        u8_t state;
-        u8_t retries;
-        struct tcp_pcb *pcb;
-        struct pbuf *p; /* pbuf (chain) to recycle */
-};
-
-// struct rx_pbuf {
-//         struct rx_pbuf *next;
-//         struct pbuf *pbuf;
+// struct tcpip_raw_state
+// {
+//         u8_t state;
+//         u8_t retries;
+//         struct tcp_pcb *pcb;
+//         struct pbuf *p; /* pbuf (chain) to recycle */
 // };
 
 struct rx_ctrl_blk {
         uint16_t rx_buf_cnt;
-//        struct rx_pbuf *rx_bufhead;
         tcpip_mpool_t *rx_bufhead;
 };
 
 
 static struct tcp_pcb *tcpip_raw_pcb = NULL;
-static struct tcpip_raw_state *client_es;
-static struct tcpip_raw_state *server_es;
+// static struct tcpip_raw_state *client_es;
+// static struct tcpip_raw_state *server_es;
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -82,7 +76,6 @@ static void push_to_rx_ctrl_blk(struct pbuf *pbuf) {
         tcpip_mpool_t *p_last_node = TcpIp_Rx_CtrlBlk.rx_bufhead;
 
         // allocate memory to store the overhead (not data) for the incoming bytes
-        // p_rxbuf = (struct rx_pbuf *) malloc(sizeof(struct rx_pbuf));
         p_rxbuf = get_new_tcpip_mpool();
         if (p_rxbuf == NULL) {
                 uint16_t plen = pbuf->len;
@@ -136,7 +129,6 @@ static struct pbuf* pop_pbuf_from_rx_ctrl_blk(void) {
                         TcpIp_Rx_CtrlBlk.rx_bufhead = p_head->next;
 
                         //  free the head's memory, alloc'ed in push_to_rx_ctrl_blk
-                        // free(p_head);
                         free_tcpip_mpool(p_head);
                         p_head = NULL;
                 }
@@ -150,6 +142,8 @@ static struct pbuf* pop_pbuf_from_rx_ctrl_blk(void) {
 }
 
 
+
+///////////////////////////////////////////////////////////////////////////////
 // non-AUTOSAR APIs for testing
 int TcpIp_send(uint8_t* pdata, uint16_t len) {
         int retval;
@@ -194,19 +188,6 @@ int TcpIp_recv(uint8_t* pdata) {
                 for (i = 0; i < len; i++) {
                         pdata[i] = ((uint8_t*)pbuf->payload)[i];
                 }
-
-                // /* clear pbuf from linked list -- continue with next pbuf in chain (if any) */
-                // server_es->p = pbuf->next;
-                // if (server_es->p != NULL) {
-                //         /* new reference! */
-                //         pbuf_ref(server_es->p);
-                // }
-
-
-                // /* chop first pbuf from chain */
-                // pbuf_free(pbuf);
-                // /* we can read more data now */
-                // tcp_recved(tcpip_raw_pcb, len);
         }
         else {
                 len = 0;
@@ -218,72 +199,73 @@ int TcpIp_recv(uint8_t* pdata) {
 
 ///////////////////////////////////////////////////////////////////////////////
 // local static functions, imported from tcpecho_raw.c of lwip
-static void tcpip_raw_free(struct tcpip_raw_state *es)
-{
-        if (es != NULL) {
-                if (es->p) {
-                        /* free the buffer chain if present */
-                        pbuf_free(es->p);
-                }
+// static void tcpip_raw_free(struct tcpip_raw_state *es)
+// {
+//         if (es != NULL) {
+//                 if (es->p) {
+//                         /* free the buffer chain if present */
+//                         pbuf_free(es->p);
+//                 }
 
-                mem_free(es);
-        }
-}
+//                 mem_free(es);
+//         }
+// }
 
 
 
 static void tcpip_raw_error(void *arg, err_t err) {
-        struct tcpip_raw_state *es;
+        // struct tcpip_raw_state *es;
 
-        LWIP_UNUSED_ARG(err);
-        es = (struct tcpip_raw_state *)arg;
-        tcpip_raw_free(es);
-        LOG_ERR("tcp raw error");
+        LWIP_UNUSED_ARG(arg);
+        // es = (struct tcpip_raw_state *)arg;
+        // tcpip_raw_free(es);
+        LOG_ERR("tcp raw error (code: 0x%X)", err);
 }
 
 
 
-// TODO: double-check if this function (tcpip_raw_send) is really required
-static void tcpip_raw_send(struct tcp_pcb *tpcb, struct tcpip_raw_state *es)
-{
-        struct pbuf *ptr;
-        err_t wr_err = ERR_OK;
+// // TODO: double-check if this function (tcpip_raw_send) is really required
+// static void tcpip_raw_send(struct tcp_pcb *tpcb, struct tcpip_raw_state *es)
+// {
+//         struct pbuf *ptr;
+//         err_t wr_err = ERR_OK;
 
-        while ((wr_err == ERR_OK) && (es->p != NULL) && (es->p->len <= tcp_sndbuf(tpcb)))
-        {
-                ptr = es->p;
+//         while ((wr_err == ERR_OK) && (es->p != NULL) && (es->p->len <= tcp_sndbuf(tpcb)))
+//         {
+//                 ptr = es->p;
 
-                /* enqueue data for transmission */
-                wr_err = tcp_write(tpcb, ptr->payload, ptr->len, 1);
-                if (wr_err == ERR_OK) {
-                        u16_t plen;
+//                 /* enqueue data for transmission */
+//                 wr_err = tcp_write(tpcb, ptr->payload, ptr->len, 1);
+//                 if (wr_err == ERR_OK) {
+//                         u16_t plen;
 
-                        plen = ptr->len;
-                        /* continue with next pbuf in chain (if any) */
-                        es->p = ptr->next;
-                        if (es->p != NULL) {
-                                /* new reference! */
-                                pbuf_ref(es->p);
-                        }
-                        /* chop first pbuf from chain */
-                        pbuf_free(ptr);
-                        /* we can read more data now */
-                        tcp_recved(tpcb, plen);
-                }
-                else if (wr_err == ERR_MEM) {
-                        /* we are low on memory, try later / harder, defer to poll */
-                        es->p = ptr;
-                        LOG_ERR("tcp memory error");
-                }
-                else {
-                        /* other problem ?? */
-                }
-        }
-}
+//                         plen = ptr->len;
+//                         /* continue with next pbuf in chain (if any) */
+//                         es->p = ptr->next;
+//                         if (es->p != NULL) {
+//                                 /* new reference! */
+//                                 pbuf_ref(es->p);
+//                         }
+//                         /* chop first pbuf from chain */
+//                         pbuf_free(ptr);
+//                         /* we can read more data now */
+//                         tcp_recved(tpcb, plen);
+//                 }
+//                 else if (wr_err == ERR_MEM) {
+//                         /* we are low on memory, try later / harder, defer to poll */
+//                         es->p = ptr;
+//                         LOG_ERR("tcp memory error");
+//                 }
+//                 else {
+//                         /* other problem ?? */
+//                 }
+//         }
+// }
 
 
 
-static void tcpip_raw_close(struct tcp_pcb *tpcb, struct tcpip_raw_state *es)
+// static void tcpip_raw_close(struct tcp_pcb *tpcb, struct tcpip_raw_state *es)
+static void tcpip_raw_close(struct tcp_pcb *tpcb)
 {
         tcp_arg(tpcb, NULL);
         tcp_sent(tpcb, NULL);
@@ -291,74 +273,76 @@ static void tcpip_raw_close(struct tcp_pcb *tpcb, struct tcpip_raw_state *es)
         tcp_err(tpcb, NULL);
         tcp_poll(tpcb, NULL, 0);
 
-        tcpip_raw_free(es);
+        // tcpip_raw_free(es);
 
         tcp_close(tpcb);
 }
 
 
 
-static err_t tcpip_raw_poll(void *arg, struct tcp_pcb *tpcb) {
-        err_t ret_err;
-        struct tcpip_raw_state *es;
+// TODO: Remove tcpip_raw_poll
+// static err_t tcpip_raw_poll(void *arg, struct tcp_pcb *tpcb) {
+//         err_t ret_err = ERR_OK;
+//         // struct tcpip_raw_state *es;
 
-        es = (struct tcpip_raw_state *) arg;
-        if (es != NULL) {
-                if (es->p != NULL) {
-                        /* there is a remaining pbuf (chain) */
-                        tcpip_raw_send(tpcb, es);
-                }
-                else {
-                        /* no remaining pbuf (chain)  */
-                        if (es->state == ES_CLOSING) {
-                                tcpip_raw_close(tpcb, es);
-                        }
-                }
-                ret_err = ERR_OK;
-        }
-        else {
-                /* nothing to be done */
-                tcp_abort(tpcb);
-                ret_err = ERR_ABRT;
-        }
+//         // es = (struct tcpip_raw_state *) arg;
+//         // if (es != NULL) {
+//         //         if (es->p != NULL) {
+//         //                 /* there is a remaining pbuf (chain) */
+//         //                 tcpip_raw_send(tpcb, es);
+//         //         }
+//         //         else {
+//         //                 /* no remaining pbuf (chain)  */
+//         //                 if (es->state == ES_CLOSING) {
+//         //                         tcpip_raw_close(tpcb, es);
+//         //                 }
+//         //         }
+//         //         ret_err = ERR_OK;
+//         // }
+//         // else {
+//         //         /* nothing to be done */
+//         //         tcp_abort(tpcb);
+//         //         ret_err = ERR_ABRT;
+//         // }
 
-        return ret_err;
-}
+//         return ret_err;
+// }
 
 
 
-static err_t tcpip_raw_sent(void *arg, struct tcp_pcb *tpcb, u16_t len)
-{
-        struct tcpip_raw_state *es;
+// TODO: Remove tcpip_raw_sent
+// static err_t tcpip_raw_sent(void *arg, struct tcp_pcb *tpcb, u16_t len)
+// {
+//         // struct tcpip_raw_state *es;
 
-        LWIP_UNUSED_ARG(len);
+//         LWIP_UNUSED_ARG(len);
 
-        es = (struct tcpip_raw_state *)arg;
-        es->retries = 0;
+//         // es = (struct tcpip_raw_state *)arg;
+//         // es->retries = 0;
 
-        if (es->p != NULL) {
-                /* still got pbufs to send */
-                tcp_sent(tpcb, tcpip_raw_sent);
-                tcpip_raw_send(tpcb, es); // TODO: check this
-        }
-        else {
-                /* no more pbufs to send */
-                if (es->state == ES_CLOSING) {
-                        LOG_DBG("tcp socket close!");
-                        tcpip_raw_close(tpcb, es);
-                }
-        }
+//         // if (es->p != NULL) {
+//         //         /* still got pbufs to send */
+//         //         tcp_sent(tpcb, tcpip_raw_sent);
+//         //         tcpip_raw_send(tpcb, es); // TODO: check this
+//         // }
+//         // else {
+//         //         /* no more pbufs to send */
+//         //         if (es->state == ES_CLOSING) {
+//         //                 LOG_DBG("tcp socket close!");
+//         //                 tcpip_raw_close(tpcb, es);
+//         //         }
+//         // }
 
-        return ERR_OK;
-}
+//         return ERR_OK;
+// }
 
 
 
 static err_t tcpip_raw_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err) {
-        struct tcpip_raw_state *es;
+        // struct tcpip_raw_state *es;
 
         LWIP_ASSERT("arg != NULL", arg != NULL);
-        es = (struct tcpip_raw_state *) arg;
+        // es = (struct tcpip_raw_state *) arg;
 
         if (err == ERR_OK && p != NULL) {
                 tcp_recved(tpcb, p->tot_len);
@@ -370,7 +354,8 @@ static err_t tcpip_raw_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err
         }
 
         if ((err != ERR_OK) || (err == ERR_OK && p == NULL)) {
-                tcpip_raw_close(tpcb, es);
+                // tcpip_raw_close(tpcb, es);
+                tcpip_raw_close(tpcb);
         }
 
         return ERR_OK;
@@ -394,24 +379,30 @@ static err_t tcpip_raw_accept(void *arg, struct tcp_pcb *newpcb, err_t err) {
            new pcbs of higher priority. */
         tcp_setprio(newpcb, TCP_PRIO_MIN);
 
-        server_es = (struct tcpip_raw_state *) mem_malloc(sizeof(struct tcpip_raw_state));
-        if (server_es != NULL) {
-                server_es->state = ES_ACCEPTED;
-                server_es->pcb = newpcb;
-                server_es->retries = 0;
-                server_es->p = NULL;
-                /* pass newly allocated es to our callbacks */
-                tcp_arg(newpcb, server_es);
-                tcp_recv(newpcb, tcpip_raw_recv);
-                tcp_err(newpcb, tcpip_raw_error);
-                tcp_poll(newpcb, tcpip_raw_poll, 0);
-                tcp_sent(newpcb, tcpip_raw_sent);
-                ret_err = ERR_OK;
-        }
-        else {
-                LOG_ERR("Memory allocation failure!");
-                ret_err = ERR_MEM;
-        }
+        tcp_arg(newpcb, NULL);
+        tcp_recv(newpcb, tcpip_raw_recv);
+        tcp_err(newpcb, tcpip_raw_error);
+        tcp_poll(newpcb, NULL, 0);
+        tcp_sent(newpcb, NULL);
+        ret_err = ERR_OK;
+        // // server_es = (struct tcpip_raw_state *) mem_malloc(sizeof(struct tcpip_raw_state));
+        // if (server_es != NULL) {
+        //         server_es->state = ES_ACCEPTED;
+        //         server_es->pcb = newpcb;
+        //         server_es->retries = 0;
+        //         server_es->p = NULL;
+        //         /* pass newly allocated es to our callbacks */
+        //         tcp_arg(newpcb, server_es);
+        //         tcp_recv(newpcb, tcpip_raw_recv);
+        //         tcp_err(newpcb, tcpip_raw_error);
+        //         tcp_poll(newpcb, tcpip_raw_poll, 0);
+        //         tcp_sent(newpcb, tcpip_raw_sent);
+        //         ret_err = ERR_OK;
+        // }
+        // else {
+        //         LOG_ERR("Memory allocation failure!");
+        //         ret_err = ERR_MEM;
+        // }
 
         return ret_err;
 }
@@ -441,7 +432,8 @@ Std_ReturnType TcpIp_Close(TcpIp_SocketIdType SocketId, boolean Abort) {
                 retval = E_NOT_OK;
         }
         else {
-                tcpip_raw_close(tcpip_raw_pcb, server_es); // TODO: implement TcpIp close for client socket later
+                // tcpip_raw_close(tcpip_raw_pcb, server_es); // TODO: implement TcpIp close for client socket later
+                tcpip_raw_close(tcpip_raw_pcb); // TODO: implement TcpIp close for client socket later
         }
 
         return retval;
@@ -517,25 +509,30 @@ Std_ReturnType TcpIp_TcpConnect(TcpIp_SocketIdType SocketId, const TcpIp_SockAdd
                 return E_NOT_OK;
         }
 
-        client_es = (struct tcpip_raw_state *) mem_malloc(sizeof(struct tcpip_raw_state));
-        if (client_es != NULL) {
-                client_es->state = ES_ACCEPTED;
-                client_es->pcb = newpcb;
-                client_es->retries = 0;
-                client_es->p = NULL;
-                /* pass newly allocated es to our callbacks */
-                tcp_arg(newpcb, client_es);
-                tcp_recv(newpcb, tcpip_raw_recv);
-                tcp_err(newpcb, tcpip_raw_error);
-                tcp_poll(newpcb, tcpip_raw_poll, 0);
-                tcp_sent(newpcb, tcpip_raw_sent);
-        }
-        else {
-                LOG_ERR("Memory allocation failure!");
-                // tcp_free(newpcb);
-                memp_free(MEMP_TCP_PCB, newpcb);
-                return E_NOT_OK;
-        }
+        tcp_arg(newpcb, NULL);
+        tcp_recv(newpcb, tcpip_raw_recv);
+        tcp_err(newpcb, tcpip_raw_error);
+        tcp_poll(newpcb, NULL, 0);
+        tcp_sent(newpcb, NULL);
+        // client_es = (struct tcpip_raw_state *) mem_malloc(sizeof(struct tcpip_raw_state));
+        // if (client_es != NULL) {
+        //         client_es->state = ES_ACCEPTED;
+        //         client_es->pcb = newpcb;
+        //         client_es->retries = 0;
+        //         client_es->p = NULL;
+        //         /* pass newly allocated es to our callbacks */
+        //         tcp_arg(newpcb, client_es);
+        //         tcp_recv(newpcb, tcpip_raw_recv);
+        //         tcp_err(newpcb, tcpip_raw_error);
+        //         tcp_poll(newpcb, tcpip_raw_poll, 0);
+        //         tcp_sent(newpcb, tcpip_raw_sent);
+        // }
+        // else {
+        //         LOG_ERR("Memory allocation failure!");
+        //         // tcp_free(newpcb);
+        //         memp_free(MEMP_TCP_PCB, newpcb);
+        //         return E_NOT_OK;
+        // }
 
         ipv4.addr = RemoteAddrPtr->inet4.addr[0];
         port = RemoteAddrPtr->inet4.port;
