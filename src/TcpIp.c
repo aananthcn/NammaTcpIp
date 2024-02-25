@@ -60,14 +60,7 @@ static void push_to_rx_ctrl_blk(struct pbuf *pbuf) {
         // allocate memory to store the overhead (not data) for the incoming bytes
         p_rxbuf = get_new_tcpip_mpool();
         if (p_rxbuf == NULL) {
-                uint16_t plen = pbuf->len;
-
-                /* drop the packet */
                 LOG_ERR("Unable to get memory pool for Eth Rx message. Dropping it!");
-                pbuf_free(pbuf);
-
-                /* we can read more data now */
-                tcp_recved(tcpip_raw_pcb, plen);
                 return;
         }
 
