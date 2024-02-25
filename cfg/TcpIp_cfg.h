@@ -7,8 +7,8 @@
 
 
 typedef enum {
-    TCPIP_AF_INET,
-    TCPIP_AF_INET6,
+    TCPIP_AF_INET = 0x02,
+    TCPIP_AF_INET6 = 0x1c,
     TCPIP_MAX_DOMAIN_TYPE
 } TcpIpDomainType;
 

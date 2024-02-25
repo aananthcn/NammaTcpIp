@@ -23,6 +23,14 @@
 
 #include <stdint.h>
 
+
+enum TcpIp_ConnState {
+	TCP_CLOSED,
+	TCP_BIND,
+	TCP_LISTEN,
+	TCP_ACCEPT
+};
+
 int TcpIp_recv(uint8_t* pdata);
 int TcpIp_send(uint8_t* pdata, uint16_t len);
 
