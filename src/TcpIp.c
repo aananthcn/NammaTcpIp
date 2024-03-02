@@ -393,7 +393,8 @@ Std_ReturnType TcpIp_RequestComMode(uint8 CtrlIdx, TcpIp_StateType State) {
 // Note: The TCP segment(s) are sent dependent on runtime factors (e.g. receive
 // window) and configuration parameter (e.g. Nagle algorithm) .
 Std_ReturnType TcpIp_TcpTransmit(TcpIp_SocketIdType SocketId, const uint8* DataPtr,
-                      uint32 AvailableLength, boolean ForceRetrieve) {
+                      uint32 AvailableLength, boolean ForceRetrieve)
+{
         Std_ReturnType retval = E_OK;
 
 
@@ -405,7 +406,8 @@ Std_ReturnType TcpIp_TcpTransmit(TcpIp_SocketIdType SocketId, const uint8* DataP
 // This service transmits data via UDP to a remote node. The transmission of the data
 // is immediately performed with this function call by forwarding it to EthIf.
 Std_ReturnType TcpIp_UdpTransmit(TcpIp_SocketIdType SocketId, const uint8* DataPtr,
-                const TcpIp_SockAddrType* RemoteAddrPtr, uint16 TotalLength) {
+                const TcpIp_SockAddrType* RemoteAddrPtr, uint16 TotalLength)
+{
         Std_ReturnType retval = E_OK;
 
 
@@ -418,7 +420,8 @@ Std_ReturnType TcpIp_UdpTransmit(TcpIp_SocketIdType SocketId, const uint8* DataP
 // Reception Function
 // By this API service the TCP/IP stack gets an indication and the data of a received frame.
 void TcpIp_RxIndication(uint8 CtrlIdx, Eth_FrameType FrameType, boolean IsBroadcast, 
-                        const uint8* PhysAddrPtr, const uint8* DataPtr, uint16 LenByte) {
+                        const uint8* PhysAddrPtr, const uint8* DataPtr, uint16 LenByte)
+{
 
 }
 
