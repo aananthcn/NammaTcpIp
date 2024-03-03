@@ -18,6 +18,14 @@
 #  * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 #  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #  */
+CC=${COMPILER}gcc
+LD=${COMPILER}ld
+AS=${COMPILER}as
+AR=${COMPILER}ar
+RANLIB=${COMPILER}ranlib
+OBJCOPY=${COMPILER}objcopy
+
+
 include ${CAR_OS_PATH}/path_defs.mk
 include ${TCPIP_PATH}/lwip_filelists.mk
 
@@ -36,7 +44,13 @@ INCDIRS  += -I ${TCPIP_PATH}/lwip/src/include \
 	    -I ${MCU_PATH}/src/common/src \
 	    -I ${MCU_PATH}/src/common/api \
 	    -I ${OS_PATH}/include \
-	    -I ${OS_BUILDER_PATH}/src
+	    -I ${OS_BUILDER_PATH}/src \
+	    -I ${SPI_PATH}/cfg \
+	    -I ${ETH_PATH}/cfg \
+	    -I ${ETH_PATH}/src/macphy \
+	    -I ${ETH_PATH}/api
+
+# TODO: remove 👆🏻 SPI_PATH, ETH_PATH, ETH_PATH after 15-Feb-2023; these are added for testing on 28 Jan 2023
 
 
 $(info  )
@@ -51,6 +65,9 @@ TCPIP_OBJS := \
 	${TCPIP_PATH}/src/TcpIp.o
 
 
+# LDFLAGS := -g -relocatable
+# CFLAGS  := -Werror ${INCDIRS} -g
+# ASFLAGS := ${INCDIRS} -g
 TARGET 	:= libTcpIp.a
 
 # include c_l_flags.mk to add more definitions specific to micro-controller
@@ -71,6 +88,7 @@ LIB_OBJS := $(LWIP_OBJS) $(TCPIP_OBJS)
 $(TARGET): $(LIB_OBJS)
 	$(AR) -rcs ${TARGET} ${LIB_OBJS}
 
+#	$(LD) ${LDFLAGS} -o $@ $^
 
 clean:
 	$(RM) $(LIB_OBJS) $(TARGET)
