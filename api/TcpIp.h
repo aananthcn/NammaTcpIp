@@ -41,8 +41,8 @@ typedef enum {
 } TcpIp_ProtocolType;
 
 
-#define IPv4_2_U32(a,b,c,d) (((u32_t)((a) & 0xff) << 24) | ((u32_t)((b) & 0xff) << 16) | \
-                             ((u32_t)((c) & 0xff) << 8)  |  (u32_t)((d) & 0xff))
+#define IPv4_2_U32(a,b,c,d) (((u32)((a) & 0xff) << 24) | ((u32)((b) & 0xff) << 16) | \
+                             ((u32)((c) & 0xff) << 8)  |  (u32)((d) & 0xff))
 typedef struct {
 	TcpIp_DomainType domain;
 	uint16 port;

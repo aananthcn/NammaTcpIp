@@ -60,9 +60,9 @@ typedef struct {
     TcpIpAssignmentMethod     addr_assn_method;
     uint8                     addr_assn_prio;
     TcpIpAssignmentTrigger    addr_assn_trig;
-    uint16                    ip_addr[16]; /* supports both ipv6 and ipv4 */
-    uint16                    ip_netmask[16]; /* supports both ipv6 and ipv4 */
-    uint16                    ip_dfroutr[16]; /* supports both ipv6 and ipv4 */
+    uint16                    ip_addr[8]; /* supports both ipv6 and ipv4 */
+    uint16                    ip_netmask[8]; /* supports both ipv6 and ipv4 */
+    uint16                    ip_dfroutr[8]; /* supports both ipv6 and ipv4 */
 } TcpIpLocalAddr;
 
 

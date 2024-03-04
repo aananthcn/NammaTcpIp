@@ -21,9 +21,9 @@ const TcpIpLocalAddr TcpIpLocalAddrConfigs[MAX_TCPIP_LOCAL_ADDRESS] = {
 		.addr_assn_method = TCPIP_STATIC,
 		.addr_assn_prio = 1,
 		.addr_assn_trig = TCPIP_MANUAL,
-		.ip_addr = {192, 168, 3, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		.ip_netmask = {255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		.ip_dfroutr = {192, 168, 3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+		.ip_addr = {192, 168, 3, 100, 0, 0, 0, 0},
+		.ip_netmask = {255, 255, 255, 0, 0, 0, 0, 0},
+		.ip_dfroutr = {192, 168, 3, 1, 0, 0, 0, 0}
 	}
 };
 

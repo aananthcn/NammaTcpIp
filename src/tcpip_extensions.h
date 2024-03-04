@@ -23,15 +23,26 @@
 
 #include <stdint.h>
 
-
-enum TcpIp_ConnState {
-	TCP_CLOSED,
-	TCP_BIND,
-	TCP_LISTEN,
-	TCP_ACCEPT
-};
+// TODO: Following enum is a duplicate of tcp_state defined in tcpbase.h
+// of LWIP project. For time being this is copied, ideally the code must
+// use the original state definition.
+typedef enum TcpIp_ConnState {
+	TCPIP_CLOSED      = 0,
+	TCPIP_LISTEN      = 1,
+	TCPIP_SYN_SENT    = 2,
+	TCPIP_SYN_RCVD    = 3,
+	TCPIP_ESTABLISHED = 4,
+	TCPIP_FIN_WAIT_1  = 5,
+	TCPIP_FIN_WAIT_2  = 6,
+	TCPIP_CLOSE_WAIT  = 7,
+	TCPIP_CLOSING     = 8,
+	TCPIP_LAST_ACK    = 9,
+	TCPIP_TIME_WAIT   = 10
+}TcpIp_ConnStateType;
 
 int TcpIp_recv(uint8_t* pdata);
 int TcpIp_send(uint8_t* pdata, uint16_t len);
+TcpIp_ConnStateType TcpIp_getConnState(uint16 skt_id);
+
 
 #endif

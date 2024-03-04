@@ -25,6 +25,7 @@
 #include "lwip_int.h"
 
 #include "tcpip_mpool.h"
+#include "tcpip_extensions.h"
 
 
 #include <zephyr/logging/log.h>
@@ -172,6 +173,11 @@ int TcpIp_recv(uint8_t* pdata) {
 }
 
 
+TcpIp_ConnStateType TcpIp_getConnState(uint16 skt_id) {
+        return tcpip_raw_pcb->state;
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////
 // local static functions, imported from tcpecho_raw.c of lwip
 static void tcpip_raw_error(void *arg, err_t err) {
@@ -296,29 +302,21 @@ Std_ReturnType TcpIp_Bind(TcpIp_SocketIdType SocketId, TcpIp_LocalAddrIdType Loc
 
 
 
-#define TCP_LISTEN_STATE        1
 // By this API service the TCP/IP stack is requested to listen on the TCP socket
 // specified by the socket identifier. The Server API.
 Std_ReturnType TcpIp_TcpListen(TcpIp_SocketIdType SocketId, uint16 MaxChannels) {
-        Std_ReturnType retval;
+        Std_ReturnType retval = E_NOT_OK;
 
         if (tcpip_raw_pcb == NULL) {
-                LOG_ERR("Argument validation failure!");
-                return E_NOT_OK; // TcpIp_Bind is not called!!
+                LOG_ERR("Invalid state, tcpip_raw_pcb is NULL!");
+                return retval; // TcpIp_Bind is not called!!
         }
 
 
-        if (tcpip_raw_pcb->state < TCP_LISTEN_STATE) {
+        if (tcpip_raw_pcb->state < TCPIP_LISTEN) {
                 tcpip_raw_pcb = tcp_listen(tcpip_raw_pcb);
                 tcp_accept(tcpip_raw_pcb, tcpip_raw_accept);
-        }
-
-        // check if accept call back is received by TcpIp module
-        if (tcpip_raw_pcb->state == TCP_LISTEN_STATE) {
                 retval = E_OK;
-        }
-        else {
-                retval = E_NOT_OK;
         }
 
         return retval;
